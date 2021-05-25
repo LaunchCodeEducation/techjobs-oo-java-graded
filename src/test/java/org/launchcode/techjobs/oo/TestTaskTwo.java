@@ -3,6 +3,7 @@ package org.launchcode.techjobs.oo;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -82,8 +83,11 @@ public class TestTaskTwo extends AbstractTest {
         Class coreCompetencyClass = getClassByName("CoreCompetency");
 
         try {
-            coreCompetencyClass.getMethod("setId");
-        } catch (NoSuchMethodException e) {}
+            coreCompetencyClass.getMethod("setId", int.class);
+            fail("CoreCompetency should not have a setId method");
+        } catch (NoSuchMethodException e) {
+            String asdf = "";
+        }
     }
 
     @Test
@@ -94,24 +98,78 @@ public class TestTaskTwo extends AbstractTest {
     }
 
     @Test
-    public void testPositionTypeEqualsMethod() {
+    public void testPositionTypeEqualsMethod() throws NoSuchMethodException, NoSuchFieldException, IllegalAccessException {
         PositionType positionType = new PositionType("asdf");
         PositionType anotherPositionType = new PositionType("asdf");
+
+        /*
+         * Look for .equals either on PositionType or its superclass.
+         * If looking on the superclass, ensure that the student has
+         * created the JobField base class and pulled the method up.
+         * */
+        try {
+            PositionType.class.getDeclaredMethod("equals", Object.class);
+        } catch (NoSuchMethodException e) {
+            try {
+                Class jobFieldClass = getClassByName("JobField");
+                Class superclass = PositionType.class.getSuperclass();
+                assertEquals(jobFieldClass, superclass);
+                superclass.getDeclaredMethod("equals", Object.class);
+            } catch (NoSuchMethodException | ClassNotFoundException ex) {
+                fail("PositionType does not declare an equals method");
+            }
+        }
 
         assertTrue(positionType.equals(positionType));
         assertFalse(positionType.equals(anotherPositionType));
         assertNotEquals(positionType.getId(), anotherPositionType.getId());
+
+        // Use reflection to make both objects have the same id and test
+        Field anotherPositionTypeIdField;
+        try {
+            anotherPositionTypeIdField = PositionType.class.getDeclaredField("id");
+        } catch (NoSuchFieldException e) {
+            anotherPositionTypeIdField = PositionType.class.getSuperclass().getDeclaredField("id");
+        }
+        anotherPositionTypeIdField.setAccessible(true);
+        anotherPositionTypeIdField.set(anotherPositionType, positionType.getId());
+        assertTrue(positionType.equals(anotherPositionType));
     }
 
     @Test
-    public void testPositionTypeHashCodeMethod() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void testPositionTypeHashCodeMethod() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, NoSuchFieldException {
         Class positionTypeClass = getClassByName("PositionType");
         PositionType positionType = new PositionType("asdf");
         PositionType anotherPositionType = new PositionType("asdf");
         Method hashCodeMethod = positionTypeClass.getMethod("hashCode");
 
+        try {
+            PositionType.class.getDeclaredMethod("hashCode");
+        } catch (NoSuchMethodException e) {
+            try {
+                Class jobFieldClass = getClassByName("JobField");
+                Class superclass = PositionType.class.getSuperclass();
+                assertEquals(jobFieldClass, superclass);
+                superclass.getDeclaredMethod("hashCode");
+            } catch (NoSuchMethodException | ClassNotFoundException ex) {
+                fail("PositionType does not declare an hashCode method");
+            }
+        }
+
         assertEquals(hashCodeMethod.invoke(positionType), hashCodeMethod.invoke(positionType));
         assertNotEquals(hashCodeMethod.invoke(positionType), hashCodeMethod.invoke(anotherPositionType));
+
+        // Use reflection to make both objects have the same id and test
+        Field anotherPositionTypeIdField;
+        try {
+            anotherPositionTypeIdField = PositionType.class.getDeclaredField("id");
+        } catch (NoSuchFieldException e) {
+            anotherPositionTypeIdField = PositionType.class.getSuperclass().getDeclaredField("id");
+        }
+
+        anotherPositionTypeIdField.setAccessible(true);
+        anotherPositionTypeIdField.set(anotherPositionType, positionType.getId());
+        assertEquals(hashCodeMethod.invoke(positionType), hashCodeMethod.invoke(anotherPositionType));
     }
 
 }
